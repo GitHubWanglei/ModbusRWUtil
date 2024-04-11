@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="functionEntries">
+        <item>01 读线圈寄存器 bit 单个或多个</item>
+        <item>02 读离散输入寄存器 bit 单个或多个</item>
+        <item>03 读保持寄存器 byte 单个或多个</item>
+        <item>04 读输入寄存器 byte 单个或多个</item>
+        <item>05 写单个线圈寄存器 bit 单个</item>
+        <item>06 写单个保持寄存器 byte 单个</item>
+        <item>0F 写多个线圈寄存器 bit 多个</item>
+        <item>10 写多个保持寄存器 byte 多个</item>
+    </string-array>
+</resources>

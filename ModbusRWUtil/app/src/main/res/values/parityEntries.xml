@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="parityEntries">
+        <item>无奇偶校验(NONE)</item>
+        <item>奇校验(ODD)</item>
+        <item>偶校验(EVEN)</item>
+    </string-array>
+</resources>
