@@ -7,8 +7,10 @@
     tools:context=".TestActivity"
     android:orientation="vertical">
 
-    <TextureView
-        android:id="@+id/textureView"
+    <TextView
+        android:text="test"
+        android:textSize="50dp"
+        android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 

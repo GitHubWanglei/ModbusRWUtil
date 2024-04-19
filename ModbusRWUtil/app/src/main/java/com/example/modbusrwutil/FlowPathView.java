@@ -32,8 +32,16 @@ public class FlowPathView extends View {
     private Paint paint;
     private Paint backgroundPaint;
 
+    public FlowPathView(Context context) {
+        this(context, null);
+    }
+
     public FlowPathView(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
+        this(context, attrs, 0);
+    }
+
+    public FlowPathView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
         initData();
     }
 

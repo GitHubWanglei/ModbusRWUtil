@@ -106,7 +106,7 @@ public class ModbusManager {
                         uihandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                writeAddressGroup.getListener().onDateRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
+                                writeAddressGroup.getListener().onDataRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
                             }
                         });
                         lockNotify();
@@ -127,7 +127,7 @@ public class ModbusManager {
                                 uihandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        group.getListener().onDateRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
+                                        group.getListener().onDataRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
                                     }
                                 });
                                 lockNotify();
@@ -145,7 +145,7 @@ public class ModbusManager {
                             uihandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    readAddressGroup.getListener().onDateRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
+                                    readAddressGroup.getListener().onDataRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
                                 }
                             });
                             lockNotify();
@@ -172,7 +172,7 @@ public class ModbusManager {
                         uihandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                writeAddressGroup.getListener().onDateRecieved(comBean, address, new int[][]{}, new String[]{});
+                                writeAddressGroup.getListener().onDataRecieved(comBean, address, new int[][]{}, new String[]{});
                             }
                         });
                         lockNotify();
@@ -207,7 +207,7 @@ public class ModbusManager {
                         uihandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                group.getListener().onDateRecieved(comBean, address, bitsArray, new String[]{}); // 回调
+                                group.getListener().onDataRecieved(comBean, address, bitsArray, new String[]{}); // 回调
                             }
                         });
                     }
@@ -257,7 +257,7 @@ public class ModbusManager {
                             uihandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    group.getListener().onDateRecieved(comBean, address, new int[][]{}, stringValueArray); // 回调
+                                    group.getListener().onDataRecieved(comBean, address, new int[][]{}, stringValueArray); // 回调
                                 }
                             });
                         }

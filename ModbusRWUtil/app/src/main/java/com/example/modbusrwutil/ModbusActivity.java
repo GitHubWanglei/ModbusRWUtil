@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -78,6 +79,7 @@ public class ModbusActivity extends AppCompatActivity {
                     CYToast.show(ModbusActivity.this, "缺少必填参数", CYToast.ERROR);
                     return;
                 }
+
                 if (et_value.getVisibility() == View.VISIBLE && et_value.getText().toString().trim().length() <= 0) {
                     CYToast.show(ModbusActivity.this, "缺少必填参数", CYToast.ERROR);
                     return;
@@ -146,7 +148,7 @@ public class ModbusActivity extends AppCompatActivity {
                     AddressGroup group = new AddressGroup("read", list);
                     group.setListener(new AddressGroup.AddressGroupListener() {
                         @Override
-                        public void onDateRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
+                        public void onDataRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
                             if (address.getAddress() == register) {
                                 timer.cancel();
                                 String str = "";
@@ -182,7 +184,7 @@ public class ModbusActivity extends AppCompatActivity {
                     AddressGroup group = new AddressGroup("read", list);
                     group.setListener(new AddressGroup.AddressGroupListener() {
                         @Override
-                        public void onDateRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
+                        public void onDataRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
                             if (address.getAddress() == register) {
                                 timer.cancel();
                                 String str = "";

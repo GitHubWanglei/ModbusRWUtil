@@ -161,8 +161,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        pathView.setVisibility(View.INVISIBLE);
-//        drawPathAnimationTest();
+//        pathView.setVisibility(View.INVISIBLE);
+        drawPathAnimationTest();
 
     }
 
@@ -201,8 +201,8 @@ public class MainActivity extends AppCompatActivity {
                     pathView.stopFlowAnimation();
                 }
 
-//                Intent intent = new Intent(MainActivity.this, TestActivity.class);
-//                startActivity(intent);
+                Intent intent = new Intent(MainActivity.this, TestActivity.class);
+                startActivity(intent);
             }
         });
 
