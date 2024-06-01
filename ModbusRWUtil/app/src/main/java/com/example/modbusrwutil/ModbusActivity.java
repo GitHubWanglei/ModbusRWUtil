@@ -20,12 +20,15 @@ import com.example.modbusrwutil.modbusUtils.AddressGroup;
 import com.example.modbusrwutil.modbusUtils.ModbusManager;
 
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import tp.xmaihh.serialport.bean.ComBean;
+import tp.xmaihh.serialport.utils.ByteUtil;
 
 public class ModbusActivity extends AppCompatActivity {
 
@@ -120,7 +123,7 @@ public class ModbusActivity extends AppCompatActivity {
 
                 AVT[] avtArray = new AVT[register_count];
                 for (int i = 0; i < register_count; i++) {
-                    avtArray[i] = AVT.t_short; // 两个字节
+                    avtArray[i] = AVT.t_u_short; // 两个字节
                 }
 
                 Timer timer = new Timer();
@@ -152,15 +155,29 @@ public class ModbusActivity extends AppCompatActivity {
                             if (address.getAddress() == register) {
                                 timer.cancel();
                                 String str = "";
-                                if (bitsArray.length > 0 && bitsArray[0].length > 0) {
-                                    for (int i = 0; i < bitsArray[0].length; i++) {
-                                        str += ", "+bitsArray[0][i];
+                                if (bitsArray.length > 0) {
+                                    for (int i = 0; i < bitsArray.length; i++) {
+                                        for (int j = 0; j < bitsArray[i].length; j++) {
+                                            if (j == 0) {
+                                                str += ""+bitsArray[i][j];
+                                            } else {
+                                                str += ", "+bitsArray[i][j];
+                                            }
+                                        }
+                                        str += "\n";
                                     }
+                                    LogUtils.log("test", "----------str"+str);
                                 } else if (values.length > 0) {
                                     for (int i = 0; i < values.length; i++) {
-                                        str += ", "+values[i];
+                                        if (i == 0) {
+                                            str += ""+values[i];
+                                        } else {
+                                            str += ", "+values[i];
+                                        }
                                     }
+
                                 }
+
                                 tv_response.setText(str);
                             }
                         }
