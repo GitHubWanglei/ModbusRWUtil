@@ -10,12 +10,38 @@ import tp.xmaihh.serialport.utils.ByteUtil;
 // 数据粘包处理
 public class ModbusStickPackageHelper {
 
-    public static byte[] ydReplyData;
+    public static byte[] ydReplyData; // 宇电
+    public static byte[] ycReplyData; // 玉川
 
     public static byte[] writeReplyData;
     public static byte[] writeExpectReplyData;
 
     public static byte[] readReplyData;
+
+    public static boolean processYcDataIsComplete(ComBean comBean) {
+        if (comBean.bRec == null) return false;
+        if (ycReplyData == null) { // 首次拼接
+            if (comBean.bRec[0] != 0x3A) {
+                LogUtils.log("test", "不是以冒号开头, 丢弃!");
+                return false;
+            }
+            ycReplyData = comBean.bRec;
+//            LogUtils.log("test", "首次拼接："+ByteUtil.ByteArrToHex(comBean.bRec));
+        } else {
+            ycReplyData = concatArray(ycReplyData, comBean.bRec);
+//            LogUtils.log("test", "再次拼接："+ByteUtil.ByteArrToHex(ycReplyData));
+        }
+        boolean isNotNull = ycReplyData != null && ycReplyData.length > 7;
+        boolean isStart_0X3A = isNotNull && ycReplyData[0] == 0x3A;
+        boolean isEnd_0x0D = isNotNull && ycReplyData[ycReplyData.length-1] == 0x0D;
+        if (isStart_0X3A && isEnd_0x0D) {
+//            LogUtils.log("test", "拼接完成!");
+            comBean.bRec = ycReplyData;
+            ycReplyData = null;
+            return true;
+        }
+        return false;
+    }
 
     public static boolean processYdDataIsComplete(ComBean comBean) {
         if (comBean.bRec == null) return false;

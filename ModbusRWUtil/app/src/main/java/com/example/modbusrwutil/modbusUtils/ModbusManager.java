@@ -25,6 +25,7 @@ public class ModbusManager {
     private AddressGroup readAddressGroup = new AddressGroup("", new ArrayList<>());; // 读操作的地址信息 (不循环)
     private final ExecutorService loopThreadPool = Executors.newSingleThreadExecutor();
     private final ExecutorService singleThreadPool = Executors.newSingleThreadExecutor();
+    private int taskCount = 0; // loopThreadPool中除了循环之外的其他任务数量
     private final Handler uihandler = new Handler(Looper.getMainLooper()); // 主线程handler
     private boolean needLoop = false;
     private boolean isLooping = false; // 是否正在循环，解析时使用
@@ -34,9 +35,12 @@ public class ModbusManager {
     private byte[] writeExpectReplyData; // 写操作期望返回的数据
 
     private long key; // 发送标识，用于区分是哪一次发送
-    private boolean isYD; // 是否是宇电仪表
-    private int timeout_modbus = 500;
-    private int timeout_yd = 500;
+
+    private static final String PROTOCOL_MODBUS = "protocol_modbus"; // modbus
+    private static final String PROTOCOL_YD = "protocol_yd"; // 宇电
+    private static final String PROTOCOL_YC = "protocol_yc"; // 玉川
+    private String protocolType; // 通信协议类型：modbus、宇电、玉川
+
     private int time_gap = 20;
     private boolean receivedSuccess = false;
 
@@ -46,23 +50,24 @@ public class ModbusManager {
 
     private ModbusManager() {}
 
-    public void initSerialPort(String sPort, int iBaudRate) {
+    public void openSerialPort(String sPort, int iBaudRate, int dataBits, int stopBits, int parity) {
+        closeSerialPort();
         if (serialHelper == null) {
             serialHelper = new SerialHelper(sPort, iBaudRate) {
                 @Override
                 protected void onDataReceived(ComBean comBean) {
-                    if (isYD) { // 宇电仪表
+                    if (protocolType.equals(PROTOCOL_YD)) { // 宇电仪表
                         processYdReceiveData(comBean);
+                    } else if (protocolType.equals(PROTOCOL_YC)) { // 玉川
+                        processYcReceiveData(comBean);
                     } else {
                         processReceiveData(comBean);
                     }
                 }
             };
-        }
-    }
-
-    public void openSerialPort() {
-        if (serialHelper != null) {
+            serialHelper.setDataBits(dataBits);
+            serialHelper.setStopBits(stopBits);
+            serialHelper.setParity(parity);
             try {
                 serialHelper.open();
             } catch (IOException e) {
@@ -71,24 +76,66 @@ public class ModbusManager {
         }
     }
 
-    public void reInitSerialPort(String sPort, int iBaudRate) {
-        closeSerialPort();
-        serialHelper = null;
-        serialHelper = new SerialHelper(sPort, iBaudRate) {
-            @Override
-            protected void onDataReceived(ComBean comBean) {
-                if (isYD) { // 宇电仪表
-                    processYdReceiveData(comBean);
-                } else {
-                    processReceiveData(comBean);
+    private void processYcReceiveData(ComBean comBean) {
+        if (!ModbusStickPackageHelper.processYcDataIsComplete(comBean)) {
+            return;
+        }
+        if (isWrite) {
+            for (int i = 0; i < writeAddressGroup.getAddressList().size(); i++) {
+                Address address = writeAddressGroup.getAddressList().get(i);
+                if ((address instanceof YCAddress) && protocolType.equals(PROTOCOL_YC) && key == ((YCAddress)address).generateKey()) {
+                    if (writeAddressGroup.getListener() != null) {
+                        ((YCAddress) address).setReplyBytes(comBean.bRec);
+                        uihandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                writeAddressGroup.getListener().onDataReceived(comBean, (YCAddress)address, new int[][]{}, new String[]{});
+                            }
+                        });
+                        lockNotify();
+                        break;
+                    }
                 }
             }
-        };
-        serialHelper.setStopBits(2);
-        try {
-            serialHelper.open();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } else {
+            if (isLooping) {
+                for (int i = 0; i < loopData.size(); i++) {
+                    AddressGroup group = loopData.get(i);
+                    for (int j = 0; j < group.getAddressList().size(); j++) {
+                        Address address = group.getAddressList().get(j);
+                        if ((address instanceof YCAddress) && protocolType.equals(PROTOCOL_YC) && key == ((YCAddress)address).generateKey()) {
+                            if (group.getListener() != null) {
+                                ((YCAddress) address).setReplyBytes(comBean.bRec);
+                                uihandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        group.getListener().onDataReceived(comBean, (YCAddress)address, new int[][]{}, new String[]{});
+                                    }
+                                });
+                                lockNotify();
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                for (int j = 0; j < readAddressGroup.getAddressList().size(); j++) {
+                    Address address = readAddressGroup.getAddressList().get(j);
+                    if ((address instanceof YCAddress) && protocolType.equals(PROTOCOL_YD) && key == ((YCAddress)address).generateKey()) {
+                        if (readAddressGroup.getListener() != null) {
+                            ((YCAddress) address).setReplyBytes(comBean.bRec);
+                            uihandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    readAddressGroup.getListener().onDataReceived(comBean, (YCAddress)address, new int[][]{}, new String[]{});
+                                }
+                            });
+                            lockNotify();
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -100,13 +147,13 @@ public class ModbusManager {
 //            LogUtils.log("test", "receive yd write bytes: " + ByteUtil.ByteArrToHex(comBean.bRec));
             for (int i = 0; i < writeAddressGroup.getAddressList().size(); i++) {
                 Address address = writeAddressGroup.getAddressList().get(i);
-                if ((address instanceof YDAddress) && isYD && key == ((YDAddress)address).getParamNo()) {
+                if ((address instanceof YDAddress) && protocolType.equals(PROTOCOL_YD) && key == ((YDAddress)address).generateKey()) {
                     if (writeAddressGroup.getListener() != null) {
                         ((YDAddress) address).setReplyBytes(comBean.bRec);
                         uihandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                writeAddressGroup.getListener().onDataRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
+                                writeAddressGroup.getListener().onDataReceived(comBean, (YDAddress)address, new int[][]{}, new String[]{});
                             }
                         });
                         lockNotify();
@@ -121,13 +168,13 @@ public class ModbusManager {
                     AddressGroup group = loopData.get(i);
                     for (int j = 0; j < group.getAddressList().size(); j++) {
                         Address address = group.getAddressList().get(j);
-                        if ((address instanceof YDAddress) && isYD && key == ((YDAddress)address).getParamNo()) {
+                        if ((address instanceof YDAddress) && protocolType.equals(PROTOCOL_YD) && key == ((YDAddress)address).generateKey()) {
                             if (group.getListener() != null) {
                                 ((YDAddress) address).setReplyBytes(comBean.bRec);
                                 uihandler.post(new Runnable() {
                                     @Override
                                     public void run() {
-                                        group.getListener().onDataRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
+                                        group.getListener().onDataReceived(comBean, (YDAddress)address, new int[][]{}, new String[]{});
                                     }
                                 });
                                 lockNotify();
@@ -139,13 +186,13 @@ public class ModbusManager {
             } else if (readAddressGroup.getAddressList().size() > 0) { // 一次性读取
                 for (int j = 0; j < readAddressGroup.getAddressList().size(); j++) {
                     Address address = readAddressGroup.getAddressList().get(j);
-                    if ((address instanceof YDAddress) && isYD && key == ((YDAddress)address).getParamNo()) {
+                    if ((address instanceof YDAddress) && protocolType.equals(PROTOCOL_YD) && key == ((YDAddress)address).generateKey()) {
                         if (readAddressGroup.getListener() != null) {
                             ((YDAddress) address).setReplyBytes(comBean.bRec);
                             uihandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    readAddressGroup.getListener().onDataRecieved(comBean, (YDAddress)address, new int[][]{}, new String[]{});
+                                    readAddressGroup.getListener().onDataReceived(comBean, (YDAddress)address, new int[][]{}, new String[]{});
                                 }
                             });
                             lockNotify();
@@ -167,12 +214,12 @@ public class ModbusManager {
 
             for (int i = 0; i < writeAddressGroup.getAddressList().size(); i++) {
                 Address address = writeAddressGroup.getAddressList().get(i);
-                if (!(address instanceof YDAddress) && !isYD && key == address.getAddress()) {
+                if (!(address instanceof YDAddress) && protocolType.equals(PROTOCOL_MODBUS) && key == address.generateKey()) {
                     if (writeAddressGroup.getListener() != null) {
                         uihandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                writeAddressGroup.getListener().onDataRecieved(comBean, address, new int[][]{}, new String[]{});
+                                writeAddressGroup.getListener().onDataReceived(comBean, address, new int[][]{}, new String[]{});
                             }
                         });
                         lockNotify();
@@ -200,14 +247,14 @@ public class ModbusManager {
     private void processReceivedReadBytes(AddressGroup group, ComBean comBean) {
         for (int j = 0; j < group.getAddressList().size(); j++) {
             Address address = group.getAddressList().get(j);
-            if (key == address.getAddress() && comBean.bRec[1] == address.getReadFuncId()) {
+            if (key == address.generateKey() && comBean.bRec[1] == address.getReadFuncId()) {
                 if (address.getReadFuncId() == 0x01 || address.getReadFuncId() == 0x02) { // 位操作
                     int[][] bitsArray = Modbus.parseByteArrayToBitsArray(comBean.bRec);
                     if (group.getListener() != null) {
                         uihandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                group.getListener().onDataRecieved(comBean, address, bitsArray, new String[]{}); // 回调
+                                group.getListener().onDataReceived(comBean, address, bitsArray, new String[]{}); // 回调
                             }
                         });
                     }
@@ -257,7 +304,7 @@ public class ModbusManager {
                             uihandler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    group.getListener().onDataRecieved(comBean, address, new int[][]{}, stringValueArray); // 回调
+                                    group.getListener().onDataReceived(comBean, address, new int[][]{}, stringValueArray); // 回调
                                 }
                             });
                         }
@@ -273,6 +320,7 @@ public class ModbusManager {
             @Override
             public void run() {
                 needLoop = false;
+                taskCount += 1; // 有新任务 +1
                 // 此处会阻塞等待循环真正停止后，才执行runnable任务
                 loopThreadPool.execute(runnable);
                 // 执行完继续循环
@@ -280,9 +328,17 @@ public class ModbusManager {
                     loopThreadPool.execute(new Runnable() {
                         @Override
                         public void run() {
+                            taskCount -= 1; // 循环任务之前的任务执行完，-1
+                            if (taskCount > 0) {
+                                LogUtils.log("test", "___________________loopThreadPool中有其它任务没有执行完，不执行循环任务");
+                                return;
+                            }
+                            // 当loopThreadPool中确保没有其他任务后，才允许执行循环任务
                             startLoopRead();
                         }
                     });
+                } else {
+                    taskCount -= 1;
                 }
             }
         });
@@ -372,14 +428,18 @@ public class ModbusManager {
                     isWrite = true;
                     byte[] bytes;
                     if (address instanceof YDAddress) { // 宇电AIBUS协议
-                        isYD = true;
+                        protocolType = PROTOCOL_YD;
                         bytes = ((YDAddress) address).configWriteData();
-                        key = ((YDAddress) address).getParamNo();
+                        key = ((YDAddress) address).generateKey();
+                    } else if (address instanceof YCAddress) { // 玉川自定义协议
+                        protocolType = PROTOCOL_YC;
+                        bytes = ((YCAddress) address).configWriteData();
+                        key = ((YCAddress) address).generateKey();
                     } else { // Modbus协议
-                        isYD = false;
+                        protocolType = PROTOCOL_MODBUS;
                         bytes = address.configWriteData();
                         writeExpectReplyData = address.configWriteReplyData();
-                        key = address.getAddress();
+                        key = address.generateKey();
                     }
                     serialHelper.send(bytes);
                     LogUtils.log("test", "send write bytes: "+ByteUtil.ByteArrToHex(bytes));
@@ -406,13 +466,17 @@ public class ModbusManager {
                     Address address = data.getAddressList().get(i);
                     byte[] bytes;
                     if (address instanceof YDAddress) { // 宇电AIBUS协议
-                        isYD = true;
+                        protocolType = PROTOCOL_YD;
                         bytes = ((YDAddress) address).configReadData();
-                        key = ((YDAddress) address).getParamNo();
+                        key = ((YDAddress) address).generateKey();
+                    } else if (address instanceof YCAddress) { // 玉川自定义协议
+                        protocolType = PROTOCOL_YC;
+                        bytes = ((YCAddress) address).configReadData();
+                        key = ((YCAddress) address).generateKey();
                     } else { // Modbus协议
-                        isYD = false;
+                        protocolType = PROTOCOL_MODBUS;
                         bytes = address.configReadData();
-                        key = address.getAddress();
+                        key = address.generateKey();
                     }
 
                     serialHelper.send(bytes);
@@ -434,18 +498,22 @@ public class ModbusManager {
         while (needLoop) {
             for (int i = 0; i < loopData.size(); i++) {
                 AddressGroup group = loopData.get(i);
-                LogUtils.log("test", "group ");
+                LogUtils.log("test", "group");
                 for (int j = 0; group != null && j < group.getAddressList().size(); j++) {
                     Address address = group.getAddressList().get(j);
                     byte[] bytes;
                     if (address instanceof YDAddress) { // 宇电AIBUS协议
-                        isYD = true;
+                        protocolType = PROTOCOL_YD;
                         bytes = ((YDAddress) address).configReadData();
-                        key = ((YDAddress) address).getParamNo();
+                        key = ((YDAddress) address).generateKey();
+                    } else if (address instanceof YCAddress) {
+                        protocolType = PROTOCOL_YC;
+                        bytes = ((YCAddress) address).configReadData();
+                        key = ((YCAddress) address).generateKey();
                     } else { // Modbus协议
-                        isYD = false;
+                        protocolType = PROTOCOL_MODBUS;
                         bytes = address.configReadData();
-                        key = address.getAddress();
+                        key = address.generateKey();
                     }
 
                     serialHelper.send(bytes);
@@ -470,7 +538,7 @@ public class ModbusManager {
         receivedSuccess = false;
         synchronized (lock) {
             try {
-                lock.wait(isYD ? timeout_yd : timeout_modbus);
+                lock.wait(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -500,14 +568,6 @@ public class ModbusManager {
             serialHelper.close();
         }
         serialHelper = null;
-    }
-
-    public void setTimeout_modbus(int timeout_modbus) {
-        this.timeout_modbus = timeout_modbus;
-    }
-
-    public void setTimeout_yd(int timeout_yd) {
-        this.timeout_yd = timeout_yd;
     }
 
     public void setTime_gap(int time_gap) {

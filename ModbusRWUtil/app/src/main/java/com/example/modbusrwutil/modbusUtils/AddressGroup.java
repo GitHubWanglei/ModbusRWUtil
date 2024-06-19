@@ -46,6 +46,6 @@ public class AddressGroup {
          * @param bitsArray 如果是功能码01、02，返回的多个bit数组（将每个字节打散成bit位数组）; 写操作返回null
          * @param values 如果是功能码03，返回的多个数值；写操作返回null
          */
-        public void onDataRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values);
+        public void onDataReceived(ComBean comBean, Address address, int[][] bitsArray, String[] values);
     }
 }

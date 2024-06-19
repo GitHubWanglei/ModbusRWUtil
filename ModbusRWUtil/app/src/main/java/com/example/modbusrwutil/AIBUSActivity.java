@@ -67,7 +67,7 @@ public class AIBUSActivity extends AppCompatActivity {
                     AddressGroup group = new AddressGroup("yd_write", addressList);
                     group.setListener(new AddressGroup.AddressGroupListener() {
                         @Override
-                        public void onDataRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
+                        public void onDataReceived(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
                             if (!(address instanceof YDAddress)) return;
                             YDAddress ydAddress = (YDAddress) address;
                             if (ydAddress.getParamNo() == param_num) {
@@ -109,7 +109,7 @@ public class AIBUSActivity extends AppCompatActivity {
                     AddressGroup group = new AddressGroup("yd_read", addressList);
                     group.setListener(new AddressGroup.AddressGroupListener() {
                         @Override
-                        public void onDataRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
+                        public void onDataReceived(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
                             if (!(address instanceof YDAddress)) return;
                             YDAddress ydAddress = (YDAddress) address;
                             if (ydAddress.getParamNo() == param_num) {

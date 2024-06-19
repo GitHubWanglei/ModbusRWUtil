@@ -3,7 +3,7 @@ package com.example.modbusrwutil.modbusUtils;
 /**
  * 宇电仪表参数信息
  */
-public class YDAddress extends Address{
+public class YDAddress extends Address {
 
     private int deviceId; // 仪表地址
     private int paramNo; // 参数代号
@@ -29,6 +29,10 @@ public class YDAddress extends Address{
         this.deviceId = deviceId;
         this.paramNo = paramNo;
         this.value = value;
+    }
+
+    public long generateKey() {
+        return getParamNo() + (long) getDeviceId() * (10^5);
     }
 
     @Override

@@ -151,7 +151,7 @@ public class ModbusActivity extends AppCompatActivity {
                     AddressGroup group = new AddressGroup("read", list);
                     group.setListener(new AddressGroup.AddressGroupListener() {
                         @Override
-                        public void onDataRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
+                        public void onDataReceived(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
                             if (address.getAddress() == register) {
                                 timer.cancel();
                                 String str = "";
@@ -201,7 +201,7 @@ public class ModbusActivity extends AppCompatActivity {
                     AddressGroup group = new AddressGroup("read", list);
                     group.setListener(new AddressGroup.AddressGroupListener() {
                         @Override
-                        public void onDataRecieved(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
+                        public void onDataReceived(ComBean comBean, Address address, int[][] bitsArray, String[] values) {
                             if (address.getAddress() == register) {
                                 timer.cancel();
                                 String str = "";

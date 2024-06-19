@@ -29,6 +29,10 @@ public class Address {
         this.desc = desc;
     }
 
+    public long generateKey() {
+        return getAddress() + (long) getDeviceId() * (10^5);
+    }
+
     public byte[] getValueBytes(AVT valueType, Object value) {
         byte[] valueBytes = new byte[0];
         if (value instanceof Integer) {

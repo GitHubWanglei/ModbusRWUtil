@@ -87,11 +87,7 @@ public class MainActivity extends AppCompatActivity {
         open_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ModbusManager.getInstance().initSerialPort("dev/ttyS2", baudrate);
-                ModbusManager.getInstance().serialHelper.setDataBits(databits);
-                ModbusManager.getInstance().serialHelper.setParity(parity);
-                ModbusManager.getInstance().serialHelper.setStopBits(stopbits);
-                ModbusManager.getInstance().openSerialPort();
+                ModbusManager.getInstance().openSerialPort("dev/ttyS2", baudrate, databits, stopbits, parity);
                 btn_modbus.setEnabled(true);
                 btn_modbus.setBackground(getApplication().getDrawable(R.drawable.btn_bg));
                 btn_aibus.setEnabled(true);
