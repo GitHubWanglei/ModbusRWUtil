@@ -121,7 +121,7 @@ public class ModbusManager {
             } else {
                 for (int j = 0; j < readAddressGroup.getAddressList().size(); j++) {
                     Address address = readAddressGroup.getAddressList().get(j);
-                    if ((address instanceof YCAddress) && protocolType.equals(PROTOCOL_YD) && key == ((YCAddress)address).generateKey()) {
+                    if ((address instanceof YCAddress) && protocolType.equals(PROTOCOL_YC) && key == ((YCAddress)address).generateKey()) {
                         if (readAddressGroup.getListener() != null) {
                             ((YCAddress) address).setReplyBytes(comBean.bRec);
                             uihandler.post(new Runnable() {
